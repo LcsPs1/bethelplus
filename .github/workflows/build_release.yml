@@ -1,0 +1,146 @@
+name: 🚀 Build & Release (iOS IPA & Android APK/AAB)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ========================================================
+  # JOB 1 : VALIDATION & TESTS
+  # ========================================================
+  test-and-lint:
+    name: 🧪 Analyze & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🦋 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter packages
+        working-directory: bethelplus_flutter
+        run: flutter pub get
+
+      - name: 🔍 Static Analysis
+        working-directory: bethelplus_flutter
+        run: flutter analyze --no-fatal-infos
+
+      - name: 🧪 Run Unit Tests
+        working-directory: bethelplus_flutter
+        run: flutter test
+
+  # ========================================================
+  # JOB 2 : BUILD ANDROID (APK & AAB)
+  # ========================================================
+  build-android:
+    name: 🤖 Build Android Release (APK & AAB)
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🦋 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter Dependencies
+        working-directory: bethelplus_flutter
+        run: flutter pub get
+
+      - name: 🔨 Build Android Release APK
+        working-directory: bethelplus_flutter
+        run: |
+          flutter build apk --release \
+            --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: 📦 Build Android App Bundle (AAB pour Google Play)
+        working-directory: bethelplus_flutter
+        run: |
+          flutter build appbundle --release \
+            --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: 📤 Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BethelPlus-Android-APK
+          path: bethelplus_flutter/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: 📤 Upload Android AAB Artifact (Google Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: BethelPlus-Android-AAB
+          path: bethelplus_flutter/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  # ========================================================
+  # JOB 3 : BUILD IOS (.IPA) SUR RUNNER MACOS
+  # ========================================================
+  build-ios:
+    name: 🍏 Build iOS IPA (Runner macOS)
+    needs: test-and-lint
+    runs-on: macos-14
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🦋 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter Dependencies
+        working-directory: bethelplus_flutter
+        run: flutter pub get
+
+      - name: 🛠️ Install CocoaPods
+        working-directory: bethelplus_flutter/ios
+        run: pod install
+
+      - name: 🏗️ Build iOS Archive (No Codesign)
+        working-directory: bethelplus_flutter
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: 📦 Package .IPA Payload
+        working-directory: bethelplus_flutter
+        run: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -r BethelPlus_iOS_Release.ipa Payload
+          cd ../../..
+
+      - name: 📤 Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BethelPlus-iOS-IPA
+          path: bethelplus_flutter/build/ios/iphoneos/BethelPlus_iOS_Release.ipa
+          retention-days: 30

@@ -1,0 +1,6 @@
+{
+  "name": "Béthel+",
+  "description": "Discipline spirituelle, prière quotidienne, méditations bibliques guidées et rappels intelligents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

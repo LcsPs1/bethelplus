@@ -1,0 +1,106 @@
+workflows:
+  # ─────────────────────────────────────────────────────────────
+  # Workflow Android — APK Release
+  # ─────────────────────────────────────────────────────────────
+  android-release:
+    name: Android Release APK
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      android_signing:
+        - bethelplus_keystore
+      vars:
+        PACKAGE_NAME: "com.aistudio.bethelplus.kxmpzq"
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Run Flutter analyze
+        script: flutter analyze --no-fatal-infos
+      - name: Build Android APK
+        script: |
+          flutter build apk --release \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+    publishing:
+      email:
+        recipients:
+          - $EMAIL_ADDRESS
+        notify:
+          success: true
+          failure: true
+
+  # ─────────────────────────────────────────────────────────────
+  # Workflow iOS — IPA Release (nécessite compte Apple Developer)
+  # ─────────────────────────────────────────────────────────────
+  ios-release:
+    name: iOS Release IPA
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      ios_signing:
+        distribution_type: app_store  # ou 'ad_hoc' pour tests
+        bundle_identifier: com.bethelplus.app
+      vars:
+        BUNDLE_ID: "com.bethelplus.app"
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Run Flutter analyze
+        script: flutter analyze --no-fatal-infos
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa --release \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+      email:
+        recipients:
+          - $EMAIL_ADDRESS
+        notify:
+          success: true
+          failure: true
+
+  # ─────────────────────────────────────────────────────────────
+  # Workflow iOS — Build sans signature (pour tester sans Apple Developer)
+  # ─────────────────────────────────────────────────────────────
+  ios-no-sign:
+    name: iOS Build (sans signature)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Build iOS (no codesign)
+        script: |
+          flutter build ios --release --no-codesign \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY
+      - name: Archive app
+        script: |
+          cd ios
+          xcodebuild archive \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath /tmp/BethelPlus.xcarchive \
+            CODE_SIGNING_ALLOWED=NO
+    artifacts:
+      - /tmp/BethelPlus.xcarchive

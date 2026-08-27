@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Béthel+</string>
+    <string name="tagline">Maison de Dieu • Retraite spirituelle quotidienne</string>
+    <string name="nav_home">Accueil</string>
+    <string name="nav_meditate">Méditer</string>
+    <string name="nav_reminders">Rappels</string>
+    <string name="nav_journal">Journal</string>
+    <string name="nav_profile">Profil</string>
+</resources>
