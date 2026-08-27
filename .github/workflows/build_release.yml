@@ -21,7 +21,6 @@ jobs:
       - name: 🦋 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x'
           channel: 'stable'
           cache: true
 
@@ -57,7 +56,6 @@ jobs:
       - name: 🦋 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x'
           channel: 'stable'
           cache: true
 
@@ -68,18 +66,12 @@ jobs:
       - name: 🔨 Build Android Release APK
         working-directory: bethelplus_flutter
         run: |
-          flutter build apk --release \
-            --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          flutter build apk --release
 
       - name: 📦 Build Android App Bundle (AAB pour Google Play)
-        working-directory: bethelplus_flutter
+        working-directory: bethelplus_flutter/android
         run: |
-          flutter build appbundle --release \
-            --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          ./gradlew bundleRelease
 
       - name: 📤 Upload Android APK Artifact
         uses: actions/upload-artifact@v4
@@ -109,7 +101,6 @@ jobs:
       - name: 🦋 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x'
           channel: 'stable'
           cache: true
 
@@ -121,13 +112,10 @@ jobs:
         working-directory: bethelplus_flutter/ios
         run: pod install
 
-      - name: 🏗️ Build iOS Archive (No Codesign)
+      - name: 🏗️ Build iOS (No Codesign)
         working-directory: bethelplus_flutter
         run: |
-          flutter build ios --release --no-codesign \
-            --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          flutter build ios --release --no-codesign
 
       - name: 📦 Package .IPA Payload
         working-directory: bethelplus_flutter
